@@ -164,7 +164,7 @@ quickLayout.Padding = UDim.new(0,10)
 
 -- Fly
 local function flyTo(cf)
-	TweenService:Create(getHRP(),TweenInfo.new(0.5),{CFrame = cf}):Play()
+	TweenService:Create(getHRP(),TweenInfo.new(0.2),{CFrame = cf}):Play()
 end
 
 -- TP Boxes
