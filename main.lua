@@ -6,12 +6,6 @@ local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
--- CONFIG
-local BASE_WIDTH = 390
-local BASE_HEIGHT = 370
-local ROW_HEIGHT = 55
-local MAX_POSES = 5  -- Set a maximum limit for the number of saved poses
-
 local poseCount = 0
 local positions = {}
 local performanceEnabled = false
@@ -25,22 +19,6 @@ end
 local function getHRP()
     return (player.Character or player.CharacterAdded:Wait()):WaitForChild("HumanoidRootPart")
 end
-
--- GUI
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.ResetOnSpawn = false
-
--- Logo
-local logo = Instance.new("TextButton")
-logo.Size = UDim2.new(0,75,0,75)
-logo.Position = UDim2.new(0,18,0,18)
-logo.Text = "SH"
-logo.Font = Enum.Font.GothamBold
-logo.TextSize = 30
-logo.TextColor3 = Color3.fromRGB(255,170,255)
-logo.BackgroundColor3 = Color3.fromRGB(18,18,18)
-logo.Parent = gui
-Instance.new("UICorner",logo).CornerRadius = UDim.new(0,16)
 
 -- Add TextStroke (Glow effect)
 logo.TextStrokeTransparency = 0.4  -- Controls the glow intensity (lower = stronger glow)
@@ -117,13 +95,6 @@ local function resize(height)
     }):Play()
 end
 
--- Open / Minimize
-local function openUI()
-    main.Visible = true
-    main.Size = UDim2.new(0,0,0,0)
-    resize(BASE_HEIGHT)
-end
-
 local function minimizeUI()
     TweenService:Create(main,TweenInfo.new(0.2),{
         Size = UDim2.new(0,0,0,0)
@@ -161,29 +132,6 @@ end)
 
 minBtn.MouseButton1Click:Connect(minimizeUI)
 
--- Tabs
-local tabBar = Instance.new("Frame",main)
-tabBar.Size = UDim2.new(1,-20,0,32)
-tabBar.Position = UDim2.new(0,10,0,38)
-tabBar.BackgroundTransparency = 1
-
-local function makeTab(text,pos)
-    local b = Instance.new("TextButton",tabBar)
-    b.Size = UDim2.new(0.33,-6,1,0)
-    b.Position = UDim2.new(pos,0,0,0)
-    b.Text = text
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 12
-    b.TextColor3 = Color3.fromRGB(255,170,255)
-    b.BackgroundColor3 = Color3.fromRGB(28,28,28)
-    Instance.new("UICorner",b).CornerRadius = UDim.new(0,10)
-    return b
-end
-
-local tpTab = makeTab("TP To Pos",0)
-local stealTab = makeTab("Stealing",0.33)
-local quickTab = makeTab("Quick Panel",0.66)
-
 -- Content
 local content = Instance.new("Frame",main)
 content.Position = UDim2.new(0,10,0,75)
@@ -210,17 +158,6 @@ stealLayout.Padding = UDim.new(0,10)
 
 local quickLayout = Instance.new("UIListLayout",quickFrame)
 quickLayout.Padding = UDim.new(0,10)
-
--- Stealing Tab Scrolling
-local stealScrollingFrame = Instance.new("ScrollingFrame", stealFrame)
-stealScrollingFrame.Size = UDim2.new(1, 0, 1, 0)  -- Fills the entire frame
-stealScrollingFrame.Position = UDim2.new(0, 0, 0, 0)  -- No offset
-stealScrollingFrame.BackgroundTransparency = 1
-stealScrollingFrame.ScrollBarThickness = 8
-stealScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)  -- Initially no scrollable area
-
-local stealLayout = Instance.new("UIListLayout", stealScrollingFrame)
-stealLayout.Padding = UDim.new(0, 10)
 
 -- TP Forward Button (Teleport based on where you're looking)
 local tpForwardBtn = Instance.new("TextButton",stealScrollingFrame)
