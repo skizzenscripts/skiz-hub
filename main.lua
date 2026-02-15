@@ -1,3 +1,4 @@
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
@@ -5,6 +6,12 @@ local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
+
+-- CONFIG
+local BASE_WIDTH = 390
+local BASE_HEIGHT = 370
+local ROW_HEIGHT = 55
+local MAX_POSES = 5  -- Set a maximum limit for the number of saved poses
 
 local poseCount = 0
 local positions = {}
@@ -19,6 +26,49 @@ end
 local function getHRP()
     return (player.Character or player.CharacterAdded:Wait()):WaitForChild("HumanoidRootPart")
 end
+
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+
+-- Logo
+local logo = Instance.new("TextButton")
+logo.Size = UDim2.new(0,75,0,75)
+logo.Position = UDim2.new(0,18,0,18)
+logo.Text = "SH"
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 30
+logo.TextColor3 = Color3.fromRGB(255,170,255)
+logo.BackgroundColor3 = Color3.fromRGB(18,18,18)
+logo.Parent = gui
+Instance.new("UICorner",logo).CornerRadius = UDim.new(0,16)
+
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+local function onLogoDrag(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        logo.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+logo.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = logo.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+logo.InputChanged:Connect(onLogoDrag)
 
 -- Add TextStroke (Glow effect)
 logo.TextStrokeTransparency = 0.4  -- Controls the glow intensity (lower = stronger glow)
@@ -53,7 +103,7 @@ textLabelTop.Position = UDim2.new(0.5, -BASE_WIDTH / 2, 0, 20)  -- Stick to the 
 textLabelTop.Text = "OUR DISCORD : https://discord.gg/2fvrGx2u"  -- Set the text
 textLabelTop.Font = Enum.Font.GothamBold
 textLabelTop.TextSize = 30
-textLabelTop.TextColor3 = Color3.fromRGB(128, 128, 128)
+textLabelTop.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabelTop.BackgroundTransparency = 1  -- Make the background transparent
 textLabelTop.Parent = gui  -- Attach to the main GUI (screen, not inside the 'main' frame)
 
@@ -95,6 +145,13 @@ local function resize(height)
     }):Play()
 end
 
+-- Open / Minimize
+local function openUI()
+    main.Visible = true
+    main.Size = UDim2.new(0,0,0,0)
+    resize(BASE_HEIGHT)
+end
+
 local function minimizeUI()
     TweenService:Create(main,TweenInfo.new(0.2),{
         Size = UDim2.new(0,0,0,0)
@@ -132,6 +189,29 @@ end)
 
 minBtn.MouseButton1Click:Connect(minimizeUI)
 
+-- Tabs
+local tabBar = Instance.new("Frame",main)
+tabBar.Size = UDim2.new(1,-20,0,32)
+tabBar.Position = UDim2.new(0,10,0,38)
+tabBar.BackgroundTransparency = 1
+
+local function makeTab(text,pos)
+    local b = Instance.new("TextButton",tabBar)
+    b.Size = UDim2.new(0.33,-6,1,0)
+    b.Position = UDim2.new(pos,0,0,0)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.TextColor3 = Color3.fromRGB(255,170,255)
+    b.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    Instance.new("UICorner",b).CornerRadius = UDim.new(0,10)
+    return b
+end
+
+local tpTab = makeTab("TP To Pos",0)
+local stealTab = makeTab("Stealing",0.33)
+local quickTab = makeTab("Quick Panel",0.66)
+
 -- Content
 local content = Instance.new("Frame",main)
 content.Position = UDim2.new(0,10,0,75)
@@ -158,6 +238,17 @@ stealLayout.Padding = UDim.new(0,10)
 
 local quickLayout = Instance.new("UIListLayout",quickFrame)
 quickLayout.Padding = UDim.new(0,10)
+
+-- Stealing Tab Scrolling
+local stealScrollingFrame = Instance.new("ScrollingFrame", stealFrame)
+stealScrollingFrame.Size = UDim2.new(1, 0, 1, 0)  -- Fills the entire frame
+stealScrollingFrame.Position = UDim2.new(0, 0, 0, 0)  -- No offset
+stealScrollingFrame.BackgroundTransparency = 1
+stealScrollingFrame.ScrollBarThickness = 8
+stealScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)  -- Initially no scrollable area
+
+local stealLayout = Instance.new("UIListLayout", stealScrollingFrame)
+stealLayout.Padding = UDim.new(0, 10)
 
 -- TP Forward Button (Teleport based on where you're looking)
 local tpForwardBtn = Instance.new("TextButton",stealScrollingFrame)
@@ -259,6 +350,24 @@ local function createInput(parent,text,default,callback)
     end)
 end
 
+-- Desync Button (Toggle Button)
+local isDesyncEnabled = false
+
+-- Create the Desync button
+local desyncButton = Instance.new("TextButton", stealScrollingFrame)
+desyncButton.Size = UDim2.new(1, 0, 0, 40)
+desyncButton.Text = "Desync: OFF"
+desyncButton.Font = Enum.Font.GothamBold
+desyncButton.TextSize = 12
+desyncButton.BackgroundColor3 = Color3.fromRGB(45, 0, 70)
+desyncButton.TextColor3 = Color3.fromRGB(255, 170, 255)
+Instance.new("UICorner", desyncButton).CornerRadius = UDim.new(0, 10)
+
+-- Toggle Desync state
+desyncButton.MouseButton1Click:Connect(function()
+    isDesyncEnabled = not isDesyncEnabled
+    desyncButton.Text = "Desync: " .. (isDesyncEnabled and "ON" or "OFF")
+end)
 createInput(stealScrollingFrame,"Speed (16-100)",16,function(v)
     getHum().WalkSpeed = math.clamp(v,16,100)
 end)
@@ -359,7 +468,7 @@ tpPosButton.MouseButton1Click:Connect(function()
     -- Check if positions 3, 2, and 1 exist
     if positions[3] then
         -- Teleport to Position 3
-        getHRP().CFrame = positions[1]
+        getHRP().CFrame = positions[3]
         wait(0.35)  -- Wait before teleporting to the next position
     end
     if positions[2] then
@@ -369,7 +478,7 @@ tpPosButton.MouseButton1Click:Connect(function()
     end
     if positions[3] then
         -- Teleport to Position 1
-        getHRP().CFrame = positions[3]
+        getHRP().CFrame = positions[1]
     end
 end)
 
@@ -379,7 +488,7 @@ local isCtrlTpEnabled = false
 -- Create the Ctrl-TP button
 local ctrlTpButton = Instance.new("TextButton", stealScrollingFrame)
 ctrlTpButton.Size = UDim2.new(1, 0, 0, 40)
-ctrlTpButton.Text = "Ctrl-TP"
+ctrlTpButton.Text = "Click-TP"
 ctrlTpButton.Font = Enum.Font.GothamBold
 ctrlTpButton.TextSize = 12
 ctrlTpButton.BackgroundColor3 = Color3.fromRGB(45, 0, 70)
@@ -388,7 +497,7 @@ Instance.new("UICorner", ctrlTpButton).CornerRadius = UDim.new(0, 10)
 
 ctrlTpButton.MouseButton1Click:Connect(function()
     isCtrlTpEnabled = not isCtrlTpEnabled
-    ctrlTpButton.Text = "Ctrl-TP: " .. (isCtrlTpEnabled and "ON" or "OFF")
+    ctrlTpButton.Text = "Click-TP: " .. (isCtrlTpEnabled and "ON" or "OFF")
 end)
 
 -- Detect key press
